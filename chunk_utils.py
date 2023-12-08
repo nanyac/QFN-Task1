@@ -40,6 +40,12 @@ class ChunkIn:
         return deltaVgs
     
 
+    def getHeaders(self) -> str:
+        """Returns pulsed point values formatted into a string
+        like in original file"""
+        _ret_str = f"Vgs={self._Vgs} Ig={self._Ig} Vds={self._Vds} Id={self._Id}"
+        return _ret_str
+
 # взять частоту
 # из каждого чанка взять для этой частоты pulsed point параметры
 # посчитать дельтаV (сделать аргументом функции для каждого остального s параметра)
@@ -51,3 +57,4 @@ class ChunkOut:
     _s_dVgs = dict()
     def __init__(self, freq: float) -> None:
         self._freq = freq
+

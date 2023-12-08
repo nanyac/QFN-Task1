@@ -30,15 +30,12 @@ def ParseIn(filepath: str) -> list:
                 
             elif isReachedPulsed(line):
                 cur_chunk_pulsed = getValues(line, "! Pulsed point : ")
+                # new ChunkIn
                 cur_chunk = ChunkIn(cur_chunk_pulsed)
+                # prevent from creating a ref
+                cur_chunk._s_freq = dict()
             
             elif isReachedTable(line):
-                # Эти комментарии рассуждают о том, что на самом деле не работает ↓
-                # the easiest way to work with this condition is to 
-                # create a second file pointer and work with "file_table"
-                # file_table = file
-                # but move the original one on 1 line forward
-                # file.readlines()
                 while 1:
                     # get current position
                     file_seek_pos = file.tell()
