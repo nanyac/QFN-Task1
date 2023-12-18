@@ -13,7 +13,8 @@ def getValues(line: str, substr:str) -> list:
 
 
 isChunkStarted = lambda line: line.__contains__("!!")
-isReachedPulsed = lambda line: line.__contains__("Pulsed point")
+isReachedQuiescent = lambda line: line.__contains__("Quiescent point :")
+isReachedPulsed = lambda line: line.__contains__("Pulsed point :")
 isReachedTable = lambda line: line.__contains__("# Hz S RI R 50")
 
 def ParseIn(filepath: str) -> list:
@@ -27,7 +28,14 @@ def ParseIn(filepath: str) -> list:
             line = file.readline()
             if isChunkStarted(line):
                 cur_chunk_index += 1
-                
+            
+            elif isReachedQuiescent(line):
+                consts_quiescent = getValues(line, "! Quiescent point : ")
+                setAllGlobals(consts_quiescent[0],
+                              consts_quiescent[1],
+                              consts_quiescent[2],
+                              consts_quiescent[3],)
+
             elif isReachedPulsed(line):
                 cur_chunk_pulsed = getValues(line, "! Pulsed point : ")
                 # new ChunkIn
