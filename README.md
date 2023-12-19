@@ -1,4 +1,4 @@
 # Гайд как собрать проект
-pip install pyinstaller
-pyinstaller --onefile main.py
+pip install pyinstaller<br>
+pyinstaller --onefile main.py<br>
 Будет создана папка dist и build
