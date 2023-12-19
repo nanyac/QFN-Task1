@@ -6,6 +6,7 @@
 # RF timing : delay=+2.07000E-05 width=+1.40000E-06
 # VNA timing
 
+from sys import exit
 import os.path
 # входной файл
 global std_in_filepath
@@ -132,7 +133,7 @@ while 1:
                 # start table loop
                 for dVg in list(chunk._s_dVgs.keys()):
                     # data
-                    file.writelines(f"{dVg} {chunk._s_dVgs[dVg]}\n")
+                    file.writelines(f"{lessAccurate(dVg)} {chunk._s_dVgs[dVg]}\n")
     
     # одна частота
     elif cmd_input == '2':

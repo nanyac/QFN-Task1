@@ -46,4 +46,5 @@ def ToGHzStr(freq: float) -> str:
     
 def lessAccurate(value:float)->str:
     """Returns 6 digits after point"""
-    return "{.6f}".format(value)
+    return "{:.6}".format(value)
+
