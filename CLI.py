@@ -41,10 +41,11 @@ def ToGHzStr(freq: float) -> str:
     Example:
     "0.1 GHz" """  
     freq /= 10.**9
-    result_str = f"{str(freq)} GHz"
+    result_str = f"{str(freq)}" ## GHz"  # отключил текст GHz для упрощения ввода частоты, теперь достаточно числа
     return result_str
     
 def lessAccurate(value:float)->str:
     """Returns 6 digits after point"""
+    #tmpstr=str(digNum)    
     return "{:.6}".format(value)
 

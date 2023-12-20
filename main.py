@@ -102,14 +102,95 @@ from CLI import *
 # CLI loop
 while 1:
     print("Введите команду","0 - выход",
-          "1 - создать файл со всеми частотами", 
-          "2 - создать файл с определённой частотой",
-          "3 - сменить V_delta", sep='\n')
+          "1 - сменить V_delta""4 - создать файл со всеми частотами", 
+          "2 - создать файл с определённой частотой (*_XpY_GHz.mps)", ## здесь X целая, а Y дробная части значения частоты (р - разделитель, пока не знаю, как отнесется IVCAD к нескольким точкам в имени файла)
+          "3 - создать файл со списком частот (*_X0pY0_X1pY1_X2pY2_..._GHz.mps)",
+          "4 - создать файл со всеми частотами"
+          "\n>>", sep='\n') ## поправил список, временно дбавил желаемый формат суффиксов вых. файлов
     cmd_input = input()
     if cmd_input == '0': exit(0)
 
+    # ********************************************************************
+    # сменить Vgs_Quiescent
+    elif cmd_input == '1':
+        print(f"Смена V_delta\nПример: +0.123E-4\nТекущее значение:{V_delta}; Исходное значение:{V_delta}")
+        # получить на вход число
+        # input_value = float(input())
+        # записать его в глобальную переменную. 
+        # Vgs_Quiescent = input_value только создаст переменную в main.py
+        V_delta = float(input()) #input_value
+        # посчитать чанки заново
+        chunk_out_list = calcChunkOuts(frequencies, chunk_in_list)
+        print(f"Готово. СМещение оси Vgs успешно заменено. Vgs_delta={V_delta}")
+        
+    # ********************************************************************
+    # одна частота
+    elif cmd_input == '2':
+        # отформатированные частоты типа ['0.2 GHz', '0.25 GHz', '0.3 GHz'...]
+        frmtd_frequencies = [ToGHzStr(float(freq)) for freq in frequencies]
+        # словарь для удобства доступа и дальнейшей работы с полем _freq из ChunkOut
+        frmtd_freqs_dict = dict().fromkeys(frmtd_frequencies)
+        # заполнение словаря
+        for freq in frequencies:
+            frmtd_freqs_dict[ToGHzStr(float(freq))] = freq
+        print(f"Участвовавшие в эксперименте частоты, GHz :\n{frmtd_frequencies}")
+        # ожидание ввода конкретной частоты
+    
+        while 1:
+            print("Какую частоту хотите вывести?\nВвод в точном формате из списка (например: 4.8 GHz)\n")
+            # ввод в формате "1.0 GHz"
+            freq_input = input()
+            # если есть частота в списке форматированных частот
+            if freq_input in frmtd_frequencies:
+                freq_str = frmtd_freqs_dict[freq_input]
+                # debug
+                single_frequency_filename = f"{std_out_filepath.replace('.mps','')}_{freq_input.replace(' ','_')}_GHz.mps" ## поправил имя вслед за форматом ввода частот в CLI.py
+                print(f"Файл будет сохранён как: {single_frequency_filename}")
+                # успешно введена частота => выход
+                break
+        
+        # имя у файла: std_out_filepath+"1.0_GHz.mps"
+        with open(single_frequency_filename, "+wt", encoding="utf-8") as file:
+            # start loop
+            selected_chunk = ChunkOut("")
+            # найти необходимый чанк, у которого частота == freq_str
+            for chunk in chunk_out_list:
+                if chunk._freq == freq_str:
+                    selected_chunk = chunk
+                    del chunk
+                    break
+            
+            # chunk header
+            # !! F = 0.1 GHz
+            file.writelines(f"!! F = { freq_input } GHz\n") # using freq_input из ввода конкретной частоты
+            file.writelines(f"!\n")
+            file.writelines(f"! Frequency: F={freq_str}\n") # using freq_str из ввода конкретной частоты
+            str_header = f"""!
+! Quiescent point : Vgs={mpsValueFormat(Vgs_Quiescent)} Vds={mpsValueFormat(Vds_Quiescent)}
+! Pulsed point : Vds=+5.35839E-03
+! Dummi Vgs_pulsed shift value : V_delta={lessAccurate(V_delta)}
+! Period : +2.00000E-04
+! Input Supply timing : delay=+1.80000E-05 width=+5.50000E-06
+! Output Supply timing : delay=+1.93000E-05 width=+3.00000E-06
+! RF timing : delay=+2.07000E-05 width=+1.40000E-06
+! VNA timing : delay=+2.12000E-05 width=+8.00000E-07\n""" ## добавил указатель величины смещения Vgs
+            file.writelines(str_header)
+            # table header
+            file.writelines("# Hz S RI R 50\n")
+            # start table loop
+            for dVg in list(selected_chunk._s_dVgs.keys()):
+                # data
+                file.writelines(f"{lessAccurate(dVg)} {selected_chunk._s_dVgs[dVg]}\n")
+
+    # ********************************************************************
+    # файл со списком частот
+    ## пока пустой.  типа нарезка введенного списка частот и обход по циклу по аналогии с cmd_input == '2' с выгрузкой в общий файл
+    if cmd_input == '3': exit(0)
+
+
+    # ********************************************************************
     # файл со всеми частотами    
-    if cmd_input == '1':
+    if cmd_input == '4':
         # файл со всеми output чанками
         with open(std_out_filepath, "+wt", encoding="utf-8") as file:
             # start loop
@@ -134,72 +215,3 @@ while 1:
                 for dVg in list(chunk._s_dVgs.keys()):
                     # data
                     file.writelines(f"{lessAccurate(dVg)} {chunk._s_dVgs[dVg]}\n")
-    
-    # одна частота
-    elif cmd_input == '2':
-        # отформатированные частоты типа ['0.2 GHz', '0.25 GHz', '0.3 GHz'...]
-        frmtd_frequencies = [ToGHzStr(float(freq)) for freq in frequencies]
-        # словарь для удобства доступа и дальнейшей работы с полем _freq из ChunkOut
-        frmtd_freqs_dict = dict().fromkeys(frmtd_frequencies)
-        # заполнение словаря
-        for freq in frequencies:
-            frmtd_freqs_dict[ToGHzStr(float(freq))] = freq
-        print(f"Участвовавшие в эксперименте частоты:\n{frmtd_frequencies}")
-        # ожидание ввода конкретной частоты
-    
-        while 1:
-            print("Какую частоту хотите вывести?")
-            # ввод в формате "1.0 GHz"
-            freq_input = input()
-            # если есть частота в списке форматированных частот
-            if freq_input in frmtd_frequencies:
-                freq_str = frmtd_freqs_dict[freq_input]
-                # debug
-                single_frequency_filename = f"{std_out_filepath}_{freq_input.replace(' ','_')}.mps"
-                print(f"Файл будет сохранён как: {single_frequency_filename}")
-                # успешно введена частота => выход
-                break
-        
-        # имя у файла: std_out_filepath+"1.0_GHz.mps"
-        with open(single_frequency_filename, "+wt", encoding="utf-8") as file:
-            # start loop
-            selected_chunk = ChunkOut("")
-            # найти необходимый чанк, у которого частота == freq_str
-            for chunk in chunk_out_list:
-                if chunk._freq == freq_str:
-                    selected_chunk = chunk
-                    del chunk
-                    break
-            
-            # chunk header
-            # !! F = 0.1 GHz
-            file.writelines(f"!! F = { freq_input }\n")     # using freq_input из ввода конкретной частоты
-            file.writelines(f"!\n")
-            file.writelines(f"! Frequency: F={freq_str}\n") # using freq_str из ввода конкретной частоты
-            str_header = f"""!
-! Quiescent point : Vgs={mpsValueFormat(Vgs_Quiescent)} Vds={mpsValueFormat(Vds_Quiescent)}
-! Pulsed point : Vds=+5.35839E-03
-! Period : +2.00000E-04
-! Input Supply timing : delay=+1.80000E-05 width=+5.50000E-06
-! Output Supply timing : delay=+1.93000E-05 width=+3.00000E-06
-! RF timing : delay=+2.07000E-05 width=+1.40000E-06
-! VNA timing : delay=+2.12000E-05 width=+8.00000E-07\n"""
-            file.writelines(str_header)
-            # table header
-            file.writelines("# Hz S RI R 50\n")
-            # start table loop
-            for dVg in list(selected_chunk._s_dVgs.keys()):
-                # data
-                file.writelines(f"{lessAccurate(dVg)} {selected_chunk._s_dVgs[dVg]}\n")
-
-    # сменить Vgs_Quiescent
-    elif cmd_input == '3':
-        print(f"Смена V_delta\nПример: +0.123E-4\nТекущее значение:{V_delta}; Исходное значение:{V_delta}")
-        # получить на вход число
-        input_value = float(input())
-        # записать его в глобальную переменную. 
-        # Vgs_Quiescent = input_value только создаст переменную в main.py
-        V_delta = input_value
-        # посчитать чанки заново
-        chunk_out_list = calcChunkOuts(frequencies, chunk_in_list)
-        print(f"Готово. Успешно заменено на {V_delta}")
